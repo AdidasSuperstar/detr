@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/detr.iml" filepath="$PROJECT_DIR$/.idea/detr.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../test-modules-main/.idea/test-modules-main.iml" filepath="$PROJECT_DIR$/../test-modules-main/.idea/test-modules-main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../try_pytorch_gpu/.idea/try_pytorch_gpu.iml" filepath="$PROJECT_DIR$/../try_pytorch_gpu/.idea/try_pytorch_gpu.iml" />
+    </modules>
+  </component>
+</project>

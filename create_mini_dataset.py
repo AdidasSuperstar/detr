@@ -9,7 +9,7 @@ marking = pd.read_csv('C:\\Users\\Eva.Locusteanu\\PycharmProjects\\detr\\models\
 y = marking.pop('source')
 X = marking
 
-X_train, X_test, y_train, y_test = train_test_split( X, y, test_size=0.33, random_state=42, stratify=y)
+X_train, X_test, y_train, y_test = train_test_split( X, y, test_size=0.005, random_state=42, stratify=y)
 
 print(len(marking))
 
@@ -33,8 +33,8 @@ X_test['source'] = y_test
 
 new = X_test
 
-print("New:", new.shape)
+print("New:", new.shape) #15K images
 print(new.head())
 
-new.to_csv("MiniTrainingData.csv")
+new.to_csv("Point_five_Percent_MiniTrainingData.csv")
 
