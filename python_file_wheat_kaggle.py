@@ -62,7 +62,7 @@ class AverageMeter(object):
 
 
 ### CONFIGURATION -- Basic configuration for this model
-n_folds = 5
+n_folds = 3
 seed = 42
 num_classes = 2
 num_queries = 64
@@ -86,7 +86,7 @@ def seed_everything(seed):
 seed_everything(seed)
 
 ### DATA PREP
-marking = pd.read_csv('C:\\Users\\Eva.Locusteanu\\PycharmProjects\\detr\\Point_five_Percent_MiniTrainingData.csv')
+marking = pd.read_csv('C:\\Users\\Eva.Locusteanu\\PycharmProjects\\detr\\Point_ONE_Percent_MiniTrainingData.csv')
 
 bboxs = np.stack(marking['bbox'].apply(lambda x: np.fromstring(x[1:-1], sep=',')))
 for i, column in enumerate(['x', 'y', 'w', 'h']):
@@ -152,7 +152,7 @@ def get_valid_transforms():
 
 print("So far so good")
 ###CREATE DATASET
-DIR_TRAIN = "C:\\Users\\Eva.Locusteanu\\PycharmProjects\\detr\\models\\train_subset_2"  # sample of about 300 imgs (instead of total 3423 images)
+DIR_TRAIN = "C:\\Users\\Eva.Locusteanu\\PycharmProjects\\detr\\models\\train_subset_3"  # sample of about 300 imgs (instead of total 3423 images)
 
 
 class WheatDataset(Dataset):
@@ -331,7 +331,7 @@ def run(fold):
         train_dataset,
         batch_size=BATCH_SIZE,
         shuffle=False,
-        num_workers=4,
+        num_workers=1,
         collate_fn=collate_fn
     )
 
@@ -339,11 +339,11 @@ def run(fold):
         valid_dataset,
         batch_size=BATCH_SIZE,
         shuffle=False,
-        num_workers=4,
+        num_workers=1, #someone online says 0? or not 0? not sure
         collate_fn=collate_fn
     )
 
-    device = torch.device('cuda') #should be the same as 'cuda:0'
+    device = torch.device('cuda') #should be the same as 'cuda:0' or 'cuda'
     model = DETRModel(num_classes=num_classes, num_queries=num_queries)
     model = model.to(device)
     criterion = SetCriterion(num_classes - 1, matcher, weight_dict, eos_coef=null_class_coef, losses=losses)
@@ -367,13 +367,83 @@ def run(fold):
 
 GPUtil.showUtilization()
 
+'''
 if __name__ == '__main__':
     model = run(fold=0)
     model.cuda()
-
+'''
 # check GPU utilization
 GPUtil.showUtilization()
 
 torch.cuda.memory_summary(device=None, abbreviated=False)
 
+
+def view_sample(df_valid, model, device):
+    '''
+    Code taken from Peter's Kernel
+    https://www.kaggle.com/pestipeti/pytorch-starter-fasterrcnn-train
+    '''
+    valid_dataset = WheatDataset(image_ids=df_valid.index.values,
+                                 dataframe=marking,
+                                 transforms=get_valid_transforms()
+                                 )
+
+    valid_data_loader = DataLoader(
+        valid_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=False,
+        num_workers=4,
+        collate_fn=collate_fn)
+
+    images, targets, image_ids = next(iter(valid_data_loader))
+    _, h, w = images[0].shape  # for de normalizing images
+
+    images = list(img.to(device) for img in images)
+    targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+
+    boxes = targets[0]['boxes'].cpu().numpy()
+    boxes = [np.array(box).astype(np.int32) for box in A.augmentations.bbox_utils.denormalize_bboxes(boxes, h, w)]
+    sample = images[0].permute(1, 2, 0).cpu().numpy()
+
+    model.eval()
+    model.to(device)
+    cpu_device = torch.device("cpu")
+
+    with torch.no_grad():
+        outputs = model(images)
+
+    outputs = [{k: v.to(cpu_device) for k, v in outputs.items()}]
+
+    fig, ax = plt.subplots(1, 1, figsize=(16, 8))
+
+    for box in boxes:
+        cv2.rectangle(sample,
+                      (box[0], box[1]),
+                      (box[2] + box[0], box[3] + box[1]),
+                      (220, 0, 0), 1)
+
+    oboxes = outputs[0]['pred_boxes'][0].detach().cpu().numpy()
+    oboxes = [np.array(box).astype(np.int32) for box in A.augmentations.bbox_utils.denormalize_bboxes(oboxes, h, w)]
+    prob = outputs[0]['pred_logits'][0].softmax(1).detach().cpu().numpy()[:, 0]
+
+    for box, p in zip(oboxes, prob):
+
+        if p > 0.5:
+            color = (0, 0, 220)  # if p>0.5 else (0,0,0)
+            cv2.rectangle(sample,
+                          (box[0], box[1]),
+                          (box[2] + box[0], box[3] + box[1]),
+                          color, 1)
+
+    ax.set_axis_off()
+    ax.imshow(sample)
+
+
+if __name__ == '__main__':
+    model = DETRModel(num_classes=num_classes, num_queries=num_queries)
+    model.load_state_dict(torch.load("./detr_best_0.pth"))
+    abc = view_sample(df_folds[df_folds['fold'] == 0], model=model, device=torch.device('cuda'))
+    abc.cuda()
+    # model = run(fold=0)
+    # model.cuda()
 
