@@ -429,21 +429,24 @@ def view_sample(df_valid, model, device):
     for box, p in zip(oboxes, prob):
 
         if p > 0.5:
-            color = (0, 0, 220)  # if p>0.5 else (0,0,0)
+            # color = (0, 0, 220)
+            color = (255, 0, 0)  # if p>0.5 else (0,0,0)
             cv2.rectangle(sample,
                           (box[0], box[1]),
                           (box[2] + box[0], box[3] + box[1]),
                           color, 1)
 
     ax.set_axis_off()
-    ax.imshow(sample)
+    ax.imshow((sample * 255).astype(np.uint8))
+    # fig.show() -- this plus edited ax.imshow shows image, but no bounding boxes
+    # plt.imshow((out * 255).astype(np.uint8))
 
 
 if __name__ == '__main__':
     model = DETRModel(num_classes=num_classes, num_queries=num_queries)
     model.load_state_dict(torch.load("./detr_best_0.pth"))
-    abc = view_sample(df_folds[df_folds['fold'] == 0], model=model, device=torch.device('cuda'))
-    abc.cuda()
+    view_sample(df_folds[df_folds['fold'] == 0], model=model, device=torch.device('cuda'))
+
     # model = run(fold=0)
     # model.cuda()
 
